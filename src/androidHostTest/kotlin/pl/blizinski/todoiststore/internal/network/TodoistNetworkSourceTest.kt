@@ -94,6 +94,27 @@ class TodoistNetworkSourceTest {
     }
 
     @Test
+    fun toRemoteRecordMapsRecurringDueStringToRecurrenceRule() {
+        val dto = TodoistTaskDto(id = "1", content = "x", due = TodoistDueDto(date = "2026-03-07", isRecurring = true, string = "every day"))
+        assertEquals("every day", dto.toRemoteRecord().content.recurrenceRule)
+    }
+
+    @Test
+    fun toRemoteRecordLeavesRecurrenceRuleNullWhenDueStringPresentButNotRecurring() {
+        // Todoist's `due.string` is also populated for a plain, non-recurring due date
+        // (e.g. "tomorrow") — only `is_recurring = true` means this is actually a recurrence
+        // rule, not just a human-readable label for a one-off date.
+        val dto = TodoistTaskDto(id = "1", content = "x", due = TodoistDueDto(date = "2026-03-07", isRecurring = false, string = "tomorrow"))
+        assertNull(dto.toRemoteRecord().content.recurrenceRule)
+    }
+
+    @Test
+    fun toRemoteRecordLeavesRecurrenceRuleNullWhenNoDueSet() {
+        val dto = TodoistTaskDto(id = "1", content = "x", due = null)
+        assertNull(dto.toRemoteRecord().content.recurrenceRule)
+    }
+
+    @Test
     fun toRemoteRecordTreatsEmptyDescriptionAsNullNotes() {
         val dto = TodoistTaskDto(id = "1", content = "x", description = "")
         assertNull(dto.toRemoteRecord().content.notes)

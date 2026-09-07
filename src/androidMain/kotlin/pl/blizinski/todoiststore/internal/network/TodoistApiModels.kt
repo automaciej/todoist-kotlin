@@ -65,6 +65,16 @@ internal data class TodoistTaskCreateRequest(
  * fields (`assignee_id`, `duration`, `deadline_date`) but don't explicitly confirm it for
  * `due_date`/`due_datetime` — flagged as an assumption to verify (see Critical Test Case 2).
  */
+/**
+ * [dueString] (Todoist's `due_string`, a natural-language field the server itself parses, e.g.
+ * "every day") is declared but deliberately not yet populated by [TodoistNetworkSource
+ * .updateRecord] — whether it can be sent alongside [dueDate]/[dueDatetime] in the same request,
+ * or whether Todoist's API treats them as mutually exclusive, needs verification against a live
+ * account before this ships (see `Docs/designs/2026-09-07-recurring-tasks.md` in the composeApp
+ * repo, Stage 4/5). Matches this file's own documented precedent of flagging a
+ * verify-before-shipping assumption rather than guessing (see [TodoistTaskDto]'s top doc
+ * comment about the `priority` field-meaning discrepancy).
+ */
 @Serializable
 internal data class TodoistTaskUpdateRequest(
     val content: String,
@@ -73,6 +83,7 @@ internal data class TodoistTaskUpdateRequest(
     val priority: Int? = null,
     @SerialName("due_date") val dueDate: String? = null,
     @SerialName("due_datetime") val dueDatetime: String? = null,
+    @SerialName("due_string") val dueString: String? = null,
 )
 
 /** Request body for `POST /api/v1/tasks/{task_id}/move`. */

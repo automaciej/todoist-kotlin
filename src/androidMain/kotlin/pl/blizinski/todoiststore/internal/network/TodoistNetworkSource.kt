@@ -197,6 +197,7 @@ internal fun TodoistTaskDto.toRemoteRecord(): RemoteRecord<TodoistTask> = Remote
         priority = priority,
         labels = labels,
         isSubtask = parentId != null,
+        recurrenceRule = due?.string?.takeIf { due.isRecurring },
     ),
 )
 

@@ -19,6 +19,7 @@ internal fun SyncedRecord<TodoistTask>.toTask(): Task = Task(
     priority = content.priority,
     labels = content.labels,
     isSubtask = content.isSubtask,
+    recurrenceRule = content.recurrenceRule,
 )
 
 internal fun SyncedListRecord<TodoistProject>.toTaskList(): TaskList = TaskList(
