@@ -122,18 +122,7 @@ internal class TodoistNetworkSource(
             .map { it.toRemoteRecord() }
 
     override suspend fun createRecord(remoteListId: String, content: TodoistTask): RemoteRecord<TodoistTask> {
-        val body = json.encodeToString(
-            TodoistTaskCreateRequest.serializer(),
-            TodoistTaskCreateRequest(
-                content = content.title,
-                description = content.notes,
-                projectId = remoteListId,
-                labels = content.labels,
-                priority = content.priority,
-                dueDate = if (!content.dueHasTime) content.dueDate?.toDateOnly() else null,
-                dueDatetime = if (content.dueHasTime) content.dueDate?.toRfc3339Utc() else null,
-            ),
-        )
+        val body = json.encodeToString(TodoistTaskCreateRequest.serializer(), content.toCreateRequest(remoteListId))
         val dto = json.decodeFromString(TodoistTaskDto.serializer(), request("POST", "$TODOIST_API_BASE/tasks", body))
         return dto.toRemoteRecord()
     }
@@ -209,6 +198,24 @@ internal fun TodoistTask.toUpdateRequestJson(): JsonObject {
     val encoded = Json.encodeToJsonElement(TodoistTaskUpdateRequest.serializer(), request).jsonObject
     return if (recurrenceRule == null) JsonObject(encoded + ("due_string" to JsonNull)) else encoded
 }
+
+/**
+ * [createRecord]'s POST body. Same `due_string`-alone-when-recurring rule as
+ * [toUpdateRequestJson] — see that function's doc comment for what's live-verified (setting, on
+ * the update path) versus assumed (the create endpoint behaving identically; see
+ * [TodoistTaskCreateRequest]'s own doc comment). No explicit-null handling needed here — a
+ * create request has no existing field value to clear, unlike an update.
+ */
+internal fun TodoistTask.toCreateRequest(remoteListId: String): TodoistTaskCreateRequest = TodoistTaskCreateRequest(
+    content = title,
+    description = notes,
+    projectId = remoteListId,
+    labels = labels,
+    priority = priority,
+    dueDate = if (recurrenceRule == null && !dueHasTime) dueDate?.toDateOnly() else null,
+    dueDatetime = if (recurrenceRule == null && dueHasTime) dueDate?.toRfc3339Utc() else null,
+    dueString = recurrenceRule,
+)
 
 internal fun TodoistTaskDto.toRemoteRecord(): RemoteRecord<TodoistTask> = RemoteRecord(
     remoteId = id,

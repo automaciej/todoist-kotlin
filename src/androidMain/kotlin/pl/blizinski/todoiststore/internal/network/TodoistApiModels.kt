@@ -45,7 +45,15 @@ internal data class TodoistDueDto(
     val timezone: String? = null,
 )
 
-/** Request body for `POST /api/v1/tasks`. */
+/**
+ * Request body for `POST /api/v1/tasks`. [dueString] follows the same rule already verified for
+ * [TodoistTaskUpdateRequest]'s update path (a live account confirmed `due_string` alone —
+ * `due_date`/`due_datetime` omitted — is sufficient and authoritative): whether Todoist's create
+ * endpoint treats it identically is a reasonable but **not independently live-verified**
+ * assumption (this is the same REST resource shape, `/api/v1/tasks`, that already shares
+ * `due_date`/`due_datetime` support symmetrically between create and update) — flagged rather
+ * than guessed at, matching this file's own precedent (see [TodoistTaskDto]'s top doc comment).
+ */
 @Serializable
 internal data class TodoistTaskCreateRequest(
     val content: String,
@@ -55,6 +63,7 @@ internal data class TodoistTaskCreateRequest(
     val priority: Int? = null,
     @SerialName("due_date") val dueDate: String? = null,
     @SerialName("due_datetime") val dueDatetime: String? = null,
+    @SerialName("due_string") val dueString: String? = null,
 )
 
 /**

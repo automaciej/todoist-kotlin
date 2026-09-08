@@ -41,7 +41,14 @@ interface TodoistStoreApi {
      */
     suspend fun deleteList(localId: String)
 
-    /** Creates a task and returns its stable [Task.id] localId. */
+    /**
+     * Creates a task and returns its stable [Task.id] localId. [recurrenceRule] is Todoist's own
+     * `due.string` (e.g. "every day"), sent as `due_string` in the same create request — assumed
+     * (not independently live-verified; see `TodoistTaskCreateRequest`'s own doc comment) to
+     * behave the same way as the already-verified update path: when set, it takes over the due
+     * date entirely, so [dueDate]/[dueHasTime] are ignored on the wire whenever [recurrenceRule]
+     * is non-null.
+     */
     suspend fun createTask(
         listLocalId: String,
         title: String,
@@ -50,6 +57,7 @@ interface TodoistStoreApi {
         dueHasTime: Boolean = false,
         priority: Int? = null,
         labels: List<String> = emptyList(),
+        recurrenceRule: String? = null,
     ): String
 
     /**

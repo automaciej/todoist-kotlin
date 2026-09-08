@@ -150,6 +150,36 @@ class TodoistNetworkSourceTest {
         assertTrue(encoded.contains(""""due_string":null"""), "clearing a recurrence rule must send an explicit null, got: $encoded")
     }
 
+    /** [TodoistTask.toCreateRequest] mirrors [TodoistTask.toUpdateRequestJson]'s due_string
+     *  rule — see that function's own doc comment for what's live-verified (setting, on the
+     *  update path) versus assumed (the create endpoint behaving identically). */
+    @Test
+    fun createRequestSendsDueStringAloneWhenRecurring() {
+        val task = TodoistTask(title = "Water plants", dueDate = 1772841600000L, recurrenceRule = "every day")
+        val request = task.toCreateRequest("project-1")
+        assertEquals("every day", request.dueString)
+        assertNull(request.dueDate)
+        assertNull(request.dueDatetime)
+    }
+
+    @Test
+    fun createRequestKeepsDueDateWhenNotRecurring() {
+        val task = TodoistTask(title = "Water plants", dueDate = 1772841600000L, dueHasTime = false, recurrenceRule = null)
+        val request = task.toCreateRequest("project-1")
+        assertEquals(1772841600000L.toDateOnly(), request.dueDate)
+        assertNull(request.dueString)
+    }
+
+    /** Unlike [updateRequestExplicitlyClearsDueStringWhenRecurrenceRemoved], a create request
+     *  has no existing field value to clear — a plain omitted `due_string` (kotlinx.serialization
+     *  drops a null default) is the correct behavior here, not an explicit null. */
+    @Test
+    fun createRequestOmitsDueStringWhenNotRecurring() {
+        val task = TodoistTask(title = "Water plants", dueDate = 1772841600000L, recurrenceRule = null)
+        val encoded = json.encodeToString(TodoistTaskCreateRequest.serializer(), task.toCreateRequest("project-1"))
+        assertFalse(encoded.contains("due_string"), "a create request with no recurrence rule shouldn't mention due_string at all, got: $encoded")
+    }
+
     @Test
     fun toRemoteRecordTreatsEmptyDescriptionAsNullNotes() {
         val dto = TodoistTaskDto(id = "1", content = "x", description = "")

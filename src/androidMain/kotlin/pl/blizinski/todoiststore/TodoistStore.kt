@@ -219,12 +219,14 @@ class TodoistStore(
         dueHasTime: Boolean,
         priority: Int?,
         labels: List<String>,
+        recurrenceRule: String?,
     ): String = guardWrite(onError = "") {
         val localId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
         val content = TodoistTask(
             title = title, notes = notes, createdDate = now,
             dueDate = dueDate, dueHasTime = dueHasTime, priority = priority, labels = labels,
+            recurrenceRule = recurrenceRule,
         )
         store.upsertRecord(
             SyncedRecord(localId = localId, remoteId = null, listLocalId = listLocalId, content = content, isCompleted = false, lastSyncedAt = null)
