@@ -3,6 +3,10 @@ package pl.blizinski.todoiststore.internal.network
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -135,17 +139,7 @@ internal class TodoistNetworkSource(
     }
 
     override suspend fun updateRecord(remoteListId: String, remoteId: String, content: TodoistTask) {
-        val body = json.encodeToString(
-            TodoistTaskUpdateRequest.serializer(),
-            TodoistTaskUpdateRequest(
-                content = content.title,
-                description = content.notes,
-                labels = content.labels,
-                priority = content.priority,
-                dueDate = if (!content.dueHasTime) content.dueDate?.toDateOnly() else null,
-                dueDatetime = if (content.dueHasTime) content.dueDate?.toRfc3339Utc() else null,
-            ),
-        )
+        val body = json.encodeToString(JsonObject.serializer(), content.toUpdateRequestJson())
         request("POST", "$TODOIST_API_BASE/tasks/$remoteId", body)
     }
 
@@ -181,6 +175,40 @@ internal class TodoistApiException(val httpStatus: Int, message: String) : Excep
 // Mapping + date helpers. This is the only place in the library that touches Todoist's own
 // JSON shape and date formats — everywhere above deals in epoch milliseconds.
 // ---------------------------------------------------------------------------
+
+/**
+ * [updateRecord]'s POST body (Todoist's `/tasks/{id}` update, not a true PATCH, but same
+ * omitted-vs-explicit-null risk this library already flags for [TodoistTaskUpdateRequest]'s
+ * `due_date`/`due_datetime` fields). Verified against a live account (see
+ * `Docs/2026-09-07-recurrence-write-path-verification.md` in the composeApp repo): sending
+ * `due_string` alone (omitting `due_date`/`due_datetime` entirely) is sufficient — Todoist
+ * computes the task's due date from the string itself, and including `due_date`/`due_datetime`
+ * alongside it made no observable difference to the resulting `due` object. So whenever
+ * [TodoistTask.recurrenceRule] is set, `due_string` is sent and `due_date`/`due_datetime` are
+ * left out of the request entirely, rather than sent alongside it.
+ *
+ * Clearing a recurrence rule (a null [TodoistTask.recurrenceRule] on a task that previously had
+ * one) was **not** part of what got live-verified — only setting one was. This explicitly
+ * injects `"due_string": null` in that case anyway, by the same defensive reasoning as
+ * `due_date`'s already-flagged (also unverified) explicit-null handling in
+ * [TodoistTaskUpdateRequest]'s own doc comment: `encodeDefaults = false` would otherwise omit a
+ * null `due_string` from the encoded body, and an omitted field is the one behavior most likely
+ * to mean "leave unchanged" rather than "clear" on an endpoint shaped like this one. Flagged as
+ * an assumption to verify, not a confirmed live-tested behavior.
+ */
+internal fun TodoistTask.toUpdateRequestJson(): JsonObject {
+    val request = TodoistTaskUpdateRequest(
+        content = title,
+        description = notes,
+        labels = labels,
+        priority = priority,
+        dueDate = if (recurrenceRule == null && !dueHasTime) dueDate?.toDateOnly() else null,
+        dueDatetime = if (recurrenceRule == null && dueHasTime) dueDate?.toRfc3339Utc() else null,
+        dueString = recurrenceRule,
+    )
+    val encoded = Json.encodeToJsonElement(TodoistTaskUpdateRequest.serializer(), request).jsonObject
+    return if (recurrenceRule == null) JsonObject(encoded + ("due_string" to JsonNull)) else encoded
+}
 
 internal fun TodoistTaskDto.toRemoteRecord(): RemoteRecord<TodoistTask> = RemoteRecord(
     remoteId = id,

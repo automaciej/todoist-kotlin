@@ -18,7 +18,6 @@ internal data class TodoistTask(
     val priority: Int? = null,
     val labels: List<String> = emptyList(),
     val isSubtask: Boolean = false,
-    /** Read-only for now — see [pl.blizinski.todoiststore.TodoistStoreApi.updateTask]. */
     val recurrenceRule: String? = null,
 )
 

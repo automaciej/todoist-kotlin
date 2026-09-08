@@ -1,5 +1,8 @@
 package pl.blizinski.todoiststore.internal.network
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import pl.blizinski.todoiststore.internal.TodoistTask
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -112,6 +115,39 @@ class TodoistNetworkSourceTest {
     fun toRemoteRecordLeavesRecurrenceRuleNullWhenNoDueSet() {
         val dto = TodoistTaskDto(id = "1", content = "x", due = null)
         assertNull(dto.toRemoteRecord().content.recurrenceRule)
+    }
+
+    // -----------------------------------------------------------------------
+    // Recurrence write path — verified against a live account, see
+    // Docs/2026-09-07-recurrence-write-path-verification.md in the composeApp repo.
+    // -----------------------------------------------------------------------
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun updateRequestSendsDueStringAloneWhenRecurring() {
+        val task = TodoistTask(title = "Water plants", dueDate = 1772841600000L, recurrenceRule = "every day")
+        val encoded = json.encodeToString(JsonObject.serializer(), task.toUpdateRequestJson())
+        assertTrue(encoded.contains(""""due_string":"every day""""), "expected due_string in body, got: $encoded")
+        assertFalse(encoded.contains(""""due_date""""), "due_date must be omitted when a recurrence rule is set, got: $encoded")
+        assertFalse(encoded.contains(""""due_datetime""""), "due_datetime must be omitted when a recurrence rule is set, got: $encoded")
+    }
+
+    @Test
+    fun updateRequestKeepsDueDateWhenNotRecurring() {
+        val task = TodoistTask(title = "Water plants", dueDate = 1772841600000L, dueHasTime = false, recurrenceRule = null)
+        val encoded = json.encodeToString(JsonObject.serializer(), task.toUpdateRequestJson())
+        assertTrue(encoded.contains(""""due_date":"${1772841600000L.toDateOnly()}""""), "expected due_date in body, got: $encoded")
+    }
+
+    /** See [TodoistTask.toUpdateRequestJson]'s own doc comment: this defensive explicit-null
+     *  injection was not itself independently live-verified, unlike the due_string-alone
+     *  behavior above. */
+    @Test
+    fun updateRequestExplicitlyClearsDueStringWhenRecurrenceRemoved() {
+        val task = TodoistTask(title = "Water plants", dueDate = 1772841600000L, recurrenceRule = null)
+        val encoded = json.encodeToString(JsonObject.serializer(), task.toUpdateRequestJson())
+        assertTrue(encoded.contains(""""due_string":null"""), "clearing a recurrence rule must send an explicit null, got: $encoded")
     }
 
     @Test

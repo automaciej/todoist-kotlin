@@ -247,11 +247,13 @@ class TodoistStore(
         dueHasTime: Boolean,
         priority: Int?,
         labels: List<String>,
+        recurrenceRule: String?,
     ): Unit = guardWrite(onError = Unit) {
         val entity = store.getRecordByLocalId(localId) ?: return@guardWrite
         val now = System.currentTimeMillis()
         val newContent = entity.content.copy(
             title = title, notes = notes, dueDate = dueDate, dueHasTime = dueHasTime, priority = priority, labels = labels,
+            recurrenceRule = recurrenceRule,
         )
         store.upsertRecord(entity.copy(content = newContent))
         store.enqueuePendingOp(

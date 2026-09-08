@@ -52,7 +52,14 @@ interface TodoistStoreApi {
         labels: List<String> = emptyList(),
     ): String
 
-    /** Updates title, notes, due date, priority, and labels. Pass null/empty to clear a field. */
+    /**
+     * Updates title, notes, due date, priority, labels, and recurrence rule. Pass null/empty to
+     * clear a field. [recurrenceRule] is Todoist's own natural-language `due.string` (e.g.
+     * "every day"), sent verbatim as `due_string` — when set, it takes over the due date
+     * entirely (verified against a live account: sending `due_date`/`due_datetime` alongside it
+     * has no observable effect on the resulting due date), so [dueDate]/[dueHasTime] are ignored
+     * on the wire whenever [recurrenceRule] is non-null.
+     */
     suspend fun updateTask(
         localId: String,
         title: String,
@@ -61,6 +68,7 @@ interface TodoistStoreApi {
         dueHasTime: Boolean = false,
         priority: Int? = null,
         labels: List<String> = emptyList(),
+        recurrenceRule: String? = null,
     )
 
     suspend fun completeTask(localId: String)

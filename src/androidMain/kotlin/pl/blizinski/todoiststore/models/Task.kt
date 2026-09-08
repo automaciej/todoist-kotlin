@@ -24,6 +24,8 @@ data class Task(
      *  same way Google Tasks' `parentId` is. */
     val isSubtask: Boolean = false,
     /** Todoist's own `due.string`, verbatim (e.g. "every day", "every! last day") — null unless
-     *  `due.is_recurring` is true. Read-only for now — see [pl.blizinski.todoiststore.TodoistStoreApi.updateTask]. */
+     *  `due.is_recurring` is true. Read from (and, via
+     *  [pl.blizinski.todoiststore.TodoistStoreApi.updateTask], written to) Todoist's `due_string`
+     *  — see that method's own doc comment. */
     val recurrenceRule: String? = null,
 )

@@ -64,16 +64,17 @@ internal data class TodoistTaskCreateRequest(
  * `null`, intended to clear the due date. Todoist's docs confirm null-to-clear for several other
  * fields (`assignee_id`, `duration`, `deadline_date`) but don't explicitly confirm it for
  * `due_date`/`due_datetime` — flagged as an assumption to verify (see Critical Test Case 2).
- */
-/**
+ *
  * [dueString] (Todoist's `due_string`, a natural-language field the server itself parses, e.g.
- * "every day") is declared but deliberately not yet populated by [TodoistNetworkSource
- * .updateRecord] — whether it can be sent alongside [dueDate]/[dueDatetime] in the same request,
- * or whether Todoist's API treats them as mutually exclusive, needs verification against a live
- * account before this ships (see `Docs/designs/2026-09-07-recurring-tasks.md` in the composeApp
- * repo, Stage 4/5). Matches this file's own documented precedent of flagging a
- * verify-before-shipping assumption rather than guessing (see [TodoistTaskDto]'s top doc
- * comment about the `priority` field-meaning discrepancy).
+ * "every day") **is** wired into [TodoistNetworkSource.updateRecord] (via
+ * [TodoistTask.toUpdateRequestJson]) — verified against a live account (see
+ * `Docs/2026-09-07-recurrence-write-path-verification.md` in the composeApp repo): sending
+ * `due_string` alone, with [dueDate]/[dueDatetime] omitted, is sufficient — Todoist computes the
+ * due date from the string itself, and including [dueDate]/[dueDatetime] alongside it made no
+ * observable difference to the resulting `due` object on the task. Clearing an existing
+ * recurrence rule (an explicit `"due_string": null`) was **not** independently live-verified —
+ * see [TodoistTask.toUpdateRequestJson]'s own doc comment for why it's handled defensively
+ * anyway.
  */
 @Serializable
 internal data class TodoistTaskUpdateRequest(
