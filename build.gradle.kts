@@ -36,7 +36,7 @@ kotlin {
             implementation(libs.okhttp)
             // Resolved via JitPack normally; substituted for the local checkout when one exists
             // as a sibling directory — see the root settings.gradle.kts.
-            implementation("com.github.automaciej:task-sync-kotlin:v0.2.1")
+            implementation("com.github.automaciej:task-sync-kotlin:v0.3.0")
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.kotlin.test)

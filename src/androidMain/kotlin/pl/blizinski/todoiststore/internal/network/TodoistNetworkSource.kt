@@ -13,7 +13,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import pl.blizinski.todoiststore.TodoistAccessTokenProvider
+import pl.blizinski.tasksync.model.AccessTokenProvider
 import pl.blizinski.todoiststore.internal.TodoistProject
 import pl.blizinski.todoiststore.internal.TodoistTask
 import pl.blizinski.tasksync.NetworkSource
@@ -43,7 +43,7 @@ private val JSON_MEDIA_TYPE = "application/json".toMediaType()
  * this app where that isn't the interface's throwing default.
  */
 internal class TodoistNetworkSource(
-    private val tokenProvider: TodoistAccessTokenProvider,
+    private val tokenProvider: AccessTokenProvider,
     private val httpClient: OkHttpClient = OkHttpClient(),
 ) : NetworkSource<TodoistTask, TodoistProject> {
 
