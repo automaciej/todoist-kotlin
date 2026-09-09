@@ -2,6 +2,7 @@ package pl.blizinski.todoiststore
 
 import kotlinx.serialization.serializer
 import pl.blizinski.todoiststore.internal.TodoistContentAdapter
+import pl.blizinski.todoiststore.internal.TodoistContentMerger
 import pl.blizinski.todoiststore.internal.TodoistProject
 import pl.blizinski.todoiststore.internal.TodoistTask
 import pl.blizinski.todoiststore.internal.network.TodoistApiException
@@ -33,4 +34,5 @@ fun todoistWasmStore(
     recordSerializer = serializer<TodoistTask>(),
     listSerializer = serializer<TodoistProject>(),
     adapter = TodoistContentAdapter,
+    merger = TodoistContentMerger,
 )
