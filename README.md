@@ -1,70 +1,81 @@
-# todoist-store
+# todoist-kotlin
 
 [![](https://jitpack.io/v/automaciej/todoist-kotlin.svg)](https://jitpack.io/#automaciej/todoist-kotlin)
 
-Android library that wraps the [Todoist API](https://developer.todoist.com/)
-with a local Room cache and exposes a reactive `TodoistStoreApi`, built on
-top of [task-sync-kotlin](https://github.com/automaciej/task-sync-kotlin)'s
-shared offline-first sync engine.
+Kotlin Multiplatform library that wraps the [Todoist API](https://developer.todoist.com/)
+with a local cache and exposes it through the shared
+[`TaskStore`](https://github.com/automaciej/task-sync-kotlin) contract, built on
+[task-sync-kotlin](https://github.com/automaciej/task-sync-kotlin)'s offline-first
+sync engine.
 
-This is not a thin, stateless network wrapper: reads and writes go through a
-local Room database that is the actual source of truth for the UI, kept in
-sync with Todoist in the background. Todoist itself remains the ultimate
-source of truth for task data; this library's cache is what lets the app
-work fully offline in between syncs.
+Reads and writes go through a local database that is the source of truth for the
+UI, reconciled with Todoist in the background, so the app works fully offline
+between syncs. Todoist remains the ultimate source of truth for task data.
 
-This library never handles Todoist OAuth itself — it takes a
-`TodoistAccessTokenProvider` supplied by the consuming app, which owns the
-actual OAuth/PKCE flow and token refresh. This keeps the library free of
-any client ID or other app-specific credential.
+The library never handles Todoist OAuth — it takes an `AccessTokenProvider`
+(`pl.blizinski.tasksync.model.AccessTokenProvider`) supplied by the consuming
+app, which owns the OAuth/PKCE flow and token refresh.
 
-## Features
+## One contract, four sources
 
-- **`TodoistStoreApi`**: reactive `Flow`s of task lists (projects) and tasks
-  per list, plus a `Flow<SyncStatus>` for surfacing sync errors/progress in
-  the UI.
-- **Adaptive background polling and pending-op merging** inherited from
-  `task-sync-kotlin`: op-merging, tombstone detection, per-account polling
-  isolation via `AdaptivePoller`, and structured `SyncErrorKind`
-  classification specific to Todoist's auth/rate-limit errors.
-- **`forceSync()` / `fullSync()`**: run a sync cycle synchronously on demand,
-  with `fullSync()` re-pulling every list from scratch to repair local state
-  that drifted in a way incremental sync can't catch.
+`todoist-kotlin`, `google-tasks-kotlin`, `microsoft-todo-kotlin` and
+`github-issues-kotlin` are separate, independently-versioned libraries that
+**all expose the same `pl.blizinski.tasksync.store.TaskStore` interface over the
+same `pl.blizinski.tasksync.model.Task` / `TaskList` types**. A consuming app can
+hold several side by side and treat them uniformly, branching only on each one's
+`StoreCapabilities` (`Todoist.capabilities`). Todoist is the richest of the four:
+projects with real create/rename/delete, a native cross-project move, a real due
+*time*, native priority (1–4), first-class labels, subtasks, and recurrence as a
+server-parsed natural-language string (`RecurrenceStyle.FUZZY` →
+`RecurrenceRule.TextRule`).
 
-## What it is *not*
+## API
 
-- **Android-only.** Built on `task-sync-kotlin`, which currently declares
-  only an `androidTarget` — see that repo's README for what a
-  multiplatform port would require.
-- **Not a general-purpose task-list abstraction.** `Task`/`TaskList` here
-  are shaped around Todoist's own data model. It's not meant to be swapped
-  for another source's schema — that's what `google-tasks-kotlin`/
-  `microsoft-todo-kotlin`/`github-issues-kotlin` are, as separate,
-  independently-versioned libraries sharing the same underlying engine.
+```kotlin
+// Android
+val store: TaskStore = todoistStore(
+    context,
+    tokenProvider,                     // AccessTokenProvider
+    StoreConfig(dbName = "todoist_store_$accountId"),
+)
+// wasmJs
+val store: TaskStore = todoistWasmStore(tokenProvider, StoreConfig(dbName = "todoist_store"))
+```
+
+`TaskStore` gives you `Flow`s of task lists (projects) and tasks per list, a
+`Flow<SyncStatus>`, optimistic write methods, `moveTask` (native), and
+`forceSync()`/`fullSync()`. Op-merging, tombstone handling, per-account polling
+isolation and `SyncErrorKind` classification are inherited from `task-sync-kotlin`.
+
+> **Incremental delta:** the plain REST `GET /api/v1/tasks` has no
+> `updated_since` parameter, so every sync is a full pull of a project's active
+> tasks. A deliberate v1 tradeoff.
+
+## Targets
+
+`androidTarget` (Room + OkHttp) and a `wasmJs` target (`todoistWasmStore`,
+IndexedDB, Ktor, sync-on-demand). The wire DTOs and the wire ⇄ model mapping are
+`commonMain`, shared by both; only the HTTP client differs. wasmJs is excluded
+from JitPack builds (see `jitpack.yml`).
 
 ## Usage
 
-Add the JitPack repository:
-
 ```kotlin
+// settings.gradle.kts
 dependencyResolutionManagement {
-    repositories {
-        maven { url = uri("https://jitpack.io") }
-    }
+    repositories { maven { url = uri("https://jitpack.io") } }
 }
 ```
-
-Add the dependency:
 
 ```kotlin
+// build.gradle.kts
 dependencies {
-    implementation("com.github.automaciej:todoist-kotlin:v0.1.0")
+    implementation("com.github.automaciej:todoist-kotlin:v0.2.1")
 }
 ```
 
-Implement `TodoistAccessTokenProvider` against your app's own OAuth/PKCE
-flow, construct a `TodoistStore` with it, then consume it through
-`TodoistStoreApi`.
+Implement `AccessTokenProvider` against your app's OAuth/PKCE flow, call
+`todoistStore(...)`, and consume the returned `TaskStore`.
 
 ## Build
 
