@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -10,6 +11,12 @@ plugins {
 
 group = "pl.blizinski"
 version = "0.1.0"
+
+// Publishing more than one target breaks JitPack's Gradle module metadata for downstream KMP
+// consumers (see task-sync-kotlin's build.gradle.kts) — TaskCompass only consumes this
+// library's android target via JitPack, so wasmJs is skipped for JitPack builds (set via
+// `-PjitpackBuild=true` in jitpack.yml). Local/POC development on the target is unaffected.
+val isJitpackBuild = project.hasProperty("jitpackBuild")
 
 kotlin {
     android {
@@ -26,29 +33,50 @@ kotlin {
         }
     }
 
+    // wasmJs target — the Ktor-based `TodoistNetworkSourceWasm` + `todoistWasmStore` counterpart
+    // of the Android OkHttp path. Additive only. Skipped on JitPack — see isJitpackBuild above.
+    if (!isJitpackBuild) {
+        @OptIn(ExperimentalWasmDsl::class)
+        wasmJs {
+            browser()
+        }
+    }
+
     sourceSets {
-        androidMain.dependencies {
+        commonMain.dependencies {
             implementation(libs.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
+            // Resolved via JitPack normally; substituted for the local checkout when one exists
+            // as a sibling directory — see the root settings.gradle.kts.
+            implementation("com.github.automaciej:task-sync-kotlin:v0.3.0")
+        }
+        androidMain.dependencies {
             implementation(libs.room.runtime)
             implementation(libs.room.ktx)
             implementation(libs.work.runtime.ktx)
             implementation(libs.okhttp)
-            // Resolved via JitPack normally; substituted for the local checkout when one exists
-            // as a sibling directory — see the root settings.gradle.kts.
-            implementation("com.github.automaciej:task-sync-kotlin:v0.3.0")
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.coroutines.test)
         }
+        if (!isJitpackBuild) {
+            val wasmJsMain by getting {
+                dependencies {
+                    implementation(libs.ktor.client.core)
+                    implementation(libs.ktor.client.js)
+                    implementation(libs.ktor.client.content.negotiation)
+                    implementation(libs.ktor.serialization.kotlinx.json)
+                    implementation("com.github.automaciej:task-sync-kotlin:v0.3.0")
+                }
+            }
+        }
     }
 }
 
-// KSP generates Room's implementation code — not for any entity defined in this module (it
-// defines none of its own), but for TaskSyncDatabase's Room.databaseBuilder(...) call site to
-// resolve correctly, matching the same inclusion in task-sync-kotlin's and
-// github-issues-kotlin's own build.gradle.kts.
+// KSP generates Room's implementation code for TaskSyncDatabase's Room.databaseBuilder(...)
+// call site — matching the same inclusion in task-sync-kotlin's and github-issues-kotlin's
+// own build.gradle.kts.
 dependencies {
     add("kspAndroid", libs.room.compiler)
 }
