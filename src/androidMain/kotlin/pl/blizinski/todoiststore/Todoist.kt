@@ -5,7 +5,7 @@ import pl.blizinski.tasksync.model.StoreCapabilities
 
 /**
  * Static facts about the Todoist source, available before any account is connected.
- * [Todoist.store] builds a [pl.blizinski.tasksync.store.TaskStore] for a connected account.
+ * [todoistStore] builds a [pl.blizinski.tasksync.store.TaskStore] for a connected account.
  */
 object Todoist {
 

@@ -49,13 +49,14 @@ internal object TodoistContentAdapter : ContentAdapter<TodoistTask, TodoistProje
         recurrenceRule = (draft.recurrenceRule as? RecurrenceRule.TextRule)?.text,
     )
 
+    // priority/labels are not part of the app's task editor today, so [TaskDraft] never carries a
+    // meaningful value for them on an update — preserve whatever the task already has rather than
+    // clobbering it to null/empty. (newContent still takes them, harmlessly, for a fresh task.)
     override fun applyDraft(existing: TodoistTask, draft: TaskDraft) = existing.copy(
         title = draft.title,
         notes = draft.notes,
         dueDate = draft.dueDate,
         dueHasTime = draft.dueHasTime,
-        priority = draft.priority,
-        labels = draft.labels,
         recurrenceRule = (draft.recurrenceRule as? RecurrenceRule.TextRule)?.text,
     )
 

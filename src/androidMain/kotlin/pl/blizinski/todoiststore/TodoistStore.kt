@@ -19,14 +19,14 @@ import pl.blizinski.tasksync.store.buildAndroidTaskStore
  * delete and tasks support a native cross-project move. One instance per connected account,
  * keyed by [config]`.dbName`. No legacy on-disk schema, so no Room migrations.
  */
-fun Todoist.store(
+fun todoistStore(
     context: Context,
     tokenProvider: AccessTokenProvider,
     config: StoreConfig,
 ): TaskStore = buildAndroidTaskStore(
     context = context,
     config = config,
-    capabilities = capabilities,
+    capabilities = Todoist.capabilities,
     network = TodoistNetworkSource(tokenProvider = tokenProvider),
     errorClassifier = HttpStatusSyncErrorClassifier(statusOf = { (it as? TodoistApiException)?.httpStatus }),
     recordSerializer = serializer<TodoistTask>(),

@@ -75,11 +75,14 @@ class TodoistContentAdapterTest {
     }
 
     @Test
-    fun applyDraft_updatesFields_keepsIsSubtask() {
-        val existing = TodoistTask(title = "old", createdDate = 1L, isSubtask = true)
-        val updated = adapter.applyDraft(existing, TaskDraft(title = "new", priority = 4))
+    fun applyDraft_updatesEditorFields_preservesPriorityLabelsIsSubtask() {
+        val existing = TodoistTask(title = "old", createdDate = 1L, isSubtask = true, priority = 2, labels = listOf("x"))
+        // A TaskDraft never carries a meaningful priority/labels today (no editor UI for them),
+        // so applyDraft must leave the existing values alone.
+        val updated = adapter.applyDraft(existing, TaskDraft(title = "new", priority = 4, labels = listOf("y")))
         assertEquals("new", updated.title)
-        assertEquals(4, updated.priority)
+        assertEquals(2, updated.priority)
+        assertEquals(listOf("x"), updated.labels)
         assertTrue(updated.isSubtask)
         assertEquals(1L, updated.createdDate)
     }
