@@ -48,7 +48,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             // Resolved via JitPack normally; substituted for the local checkout when one exists
             // as a sibling directory — see the root settings.gradle.kts.
-            implementation("com.github.automaciej:task-sync-kotlin:v0.3.0")
+            implementation("com.github.automaciej:task-sync-kotlin:v0.4.0")
         }
         androidMain.dependencies {
             implementation(libs.room.runtime)
@@ -67,7 +67,7 @@ kotlin {
                     implementation(libs.ktor.client.js)
                     implementation(libs.ktor.client.content.negotiation)
                     implementation(libs.ktor.serialization.kotlinx.json)
-                    implementation("com.github.automaciej:task-sync-kotlin:v0.3.0")
+                    implementation("com.github.automaciej:task-sync-kotlin:v0.4.0")
                 }
             }
         }
